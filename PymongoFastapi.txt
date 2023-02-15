@@ -1,0 +1,75 @@
+import pymongo
+from fastapi  import FastAPI 
+from pydantic import BaseModel
+from bson.json_util import dumps
+app = FastAPI()
+
+#Connection String
+connection = "mongodb+srv://KasojiSampath:Sampath1234@cluster0.s6c2gee.mongodb.net/test"
+
+#Creating an instance to MongoDB
+try :
+    client = pymongo.MongoClient(connection)
+except pymongo.errors.ConnectionFailure as e:
+    print("Could not connect to the server : %s" %e)
+
+# Creating a Database of School
+db = client['Products']
+
+# Creating a Collection
+collection = db['SuperMart']
+
+# Creating a BaseModel for SuperMat
+class model(BaseModel):
+    id : int
+    name : str
+    price : int
+    brand : str = None
+
+@app.get("/")
+def Root():
+    return {"message":"Working with FastAPI and MongoDB"}
+
+
+# Inserting into collection
+@app.post("/Insert")
+def insertDocumnets(Product : model):
+
+    collection.insert_one(Product.dict())
+    return {"message" : "Product sucessfully added"}
+
+
+# Printing all documents
+@app.get("/GetAllProducts")
+def printAllDocuments():
+
+    documents = collection.find({})
+    return [ProductEntity(document) for document in documents] 
+
+
+# Updating the Documents
+@app.put("/UpdateDocument/{Product_id}")
+def updateDocuments(Product_id:int, name : str):
+    
+    collection.update_one({"id":Product_id},{'$set' :{"name":name}})
+    return {"message" : "Product details updated sucessfully"}
+
+
+#Deleting the Documents
+@app.delete("/DeleteRecord/{Product_id}")
+def deletingRecords(Product_id : int):
+
+    collection.find_one_and_delete({"id":Product_id})
+    return {"message" : "Product is removed"}
+
+
+
+#Structure for document representation
+def ProductEntity(item) -> dict:
+    return{
+        "id" : str(item["id"]),
+        "name" : item["name"],
+        "price" : str(item["price"]),
+        "brand" : item["brand"]
+    }
+
